@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+
+  <div class="col-lg-12">
+
+    <div id="dts_waterfall" style="width:100%,height:600px"></div>
+
+    <div class="col-lg-2">
+      <label for="">Temperature min, DegC</label>
+      <input type="text" class="form-control" id="zmin" value="{{session.zmin}}">
+      <label for="">Temperature max, DegC</label>
+      <input type="text" class="form-control" id="zmax" value="{{session.zmax}}">
+      <label for="">Colormap</label>
+      <input type="text" class="form-control" id="colormap" value="{{session.colormap}}">
+      <br>
+      <button type="button" class="btn btn-info" id="save">Save</button>
+
+      <a class="btn btn-secondary" href="integrated_plot_plot1" role="button">Plot</a>
+
+    </div>
+
+  </div>
+</div>
+
+
+<script type="text/javascript">
+
+
+  var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+  var session;
+  session={{ session|safe }};
+
+  var configs={};
+
+  if (session.colormap.indexOf("custom_") !== -1){
+    var colormap=session.custom_colormap[session.colormap];
+  }else{
+    var colormap=session.colormap;
+  }
+
+  var dts_data = {
+    z: session.dts_data,
+    x: session.dts_timestamps,
+    y: session.dts_depths,
+    type: 'heatmap',
+    xaxis: "x4",
+    yaxis: "y",
+    colorscale: colormap,
+    colorbar:{
+      // len: 0.35,
+      title: 'DegC',
+      titleside:'top',
+      // tickvals:[0,50,100],
+      // tickfont: {color: 'red'},
+      // len:0.7,
+      // y:-1,
+      thickness:10
+
+    },
+    zmin:session.zmin,
+    zmax:session.zmax
+  }
+
+  var completion_data = {
+    x: [],
+    y: [],
+    type: 'line',
+    xaxis: "x",
+    yaxis: "y",
+  }
+
+  var inclination_data = {
+    x: session.inclination[1],
+    y: session.inclination[0],
+    type: 'line',
+    xaxis: "x2",
+    yaxis: "y",
+    mode: 'lines'
+  }
+
+  var geothermal_trace = {
+    x: session.geothermal[1],
+    y: session.geothermal[0],
+    type: 'line',
+    xaxis: "x3",
+    yaxis: "y",
+    mode: 'lines'
+  }
+
+  var trace1 = {
+    x: session.pt[0],
+    y: session.pt[1],
+    mode: 'markers',
+    type: 'scatter',
+    xaxis: "x4",
+    yaxis: "y5",
+    marker:{color: "green"}
+  };
+
+  var trace2 = {
+    x: session.pt[0],
+    y: session.pt[2],
+    mode: 'markers',
+    type: 'scatter',
+    xaxis: "x4",
+    yaxis: "y6",
+    marker:{color: "red"}
+  };
+
+  var data = [completion_data,inclination_data,geothermal_trace,dts_data,trace1,trace2];
+
+  var layout = {
+
+    height: 800,
+    margin: {
+      l: 80,
+      r: 100,
+      b: 90,
+      t: 70,
+      // pad: 4
+    },
+    showlegend:false,
+    xaxis:{
+      domain:[0,0.05],
+      range:[0,20],
+      // visible: false,
+      linecolor: 'black',
+      linewidth: 0,
+      mirror: true,
+      tickmode:"array",
+      tickvals:[],
+      ticktext:[],
+
+    },
+    yaxis:{
+      range:[1950,136],
+      linecolor: 'black',
+      linewidth: 0,
+      mirror: true,
+      domain:[0.3,1],
+      title: {
+        text: 'Depth, m',
+        font:{
+          size:12
+        }
+      }
+    },
+    xaxis2:{
+      domain:[0.07,0.13],
+      // side:"top",
+      linecolor: 'black',
+      linewidth: 0,
+      mirror: true,
+    },
+    yaxis2:{
+      // anchor: "x2",
+      linecolor: 'black',
+      linewidth: 0,
+      mirror: true,
+      // ticks:'outside',
+      showline:true,
+      domain:[0.3,1],
+    },
+    xaxis3:{
+      domain:[0.15,0.20],
+      // side:"top",
+      linecolor: 'black',
+      linewidth: 0,
+      mirror: true,
+    },
+    yaxis3:{
+      domain:[0.3,1],
+    },
+    xaxis4:{
+      domain:[0.22,0.97],
+      range:[session.date_min,session.date_max],
+    },
+    yaxis4:{
+      domain:[0.3,1],
+      anchor: "x4",
+    },
+    xaxis5:{
+      domain:[0.22,0.97],
+      linecolor: 'black',
+      linewidth: 0,
+
+      // side:"bottom",
+    },
+    yaxis5:{
+      domain:[0,0.2],
+      linecolor: 'black',
+      linewidth: 0,
+      anchor: "x4",
+      title: {
+        text: 'Pressure, atm',
+        font:{
+          size:12,
+          color: 'green'
+        }
+      }
+    },
+    yaxis6:{
+      domain:[0,0.2],
+      linecolor: 'black',
+      linewidth: 0,
+      anchor: "x4",
+      side:"right",
+      overlaying: 'y5',
+      title: {
+        text: 'Temperature. DegC',
+        font:{
+          size:12,
+          color: 'red'
+        }
+      }
+    },
+    shapes:[{
+      type: 'rect',
+      x0: 0,
+      y0: 0,
+      x1: 20,
+      y1: 80,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 1
+      },
+      fillcolor: 'rgb(194, 194, 194)',
+      // opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 2,
+      y0: 0,
+      x1: 18,
+      y1: 312.7,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 1
+      },
+      fillcolor: 'rgb(194, 194, 194)',
+      // opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 3,
+      y0: 0,
+      x1: 17,
+      y1: 1956.22,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 1
+      },
+      fillcolor: 'rgb(194, 194, 194)',
+      // opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 6,
+      y0: 0,
+      x1: 14,
+      y1: 1832,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 1
+      },
+      fillcolor: 'rgb(194, 194, 194)',
+      // opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 0,
+      y0: 1776,
+      x1: 20,
+      y1: 1781,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(163, 144, 144)',
+      opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 0,
+      y0: 1792,
+      x1: 20,
+      y1: 1795,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(163, 144, 144)',
+      opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 0,
+      y0: 1797,
+      x1: 20,
+      y1: 1800,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(163, 144, 144)',
+      opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 0,
+      y0: 1804,
+      x1: 20,
+      y1: 1806,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(163, 144, 144)',
+      opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 0,
+      y0: 1808,
+      x1: 20,
+      y1: 1810,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(163, 144, 144)',
+      opacity:0.5,
+    },{
+      type: 'rect',
+      x0: 3,
+      y0: 1640,
+      x1: 17,
+      y1: 1650,
+      line: {
+        // color: 'rgba(128, 0, 128, 1)',
+        width: 0
+      },
+      fillcolor: 'rgb(250, 0, 0)',
+      opacity:0.5,
+    }],
+    annotations: [{
+      text: "Completion",
+      font: {
+        size: 12,
+      },
+      showarrow: false,
+      align: 'center',
+      x: 0.004, //position in x domain
+      y: 1.05, //position in y domain
+      xref: 'paper',
+      yref: 'paper',
+    },{
+      text: "Inclination (deg)",
+      font: {
+        size: 12,
+      },
+      showarrow: false,
+      align: 'center',
+      x: 0.07, //position in x domain
+      y: 1.05, //position in y domain
+      xref: 'paper',
+      yref: 'paper',
+    },{
+      text: "Geothermal",
+      font: {
+        size: 12,
+      },
+      showarrow: false,
+      align: 'center',
+      x: 0.15, //position in x domain
+      y: 1.05, //position in y domain
+      xref: 'paper',
+      yref: 'paper',
+    },{
+      text: "DTS waterfall plot",
+      font: {
+        size: 12,
+      },
+      showarrow: false,
+      align: 'center',
+      x: 0.6, //position in x domain
+      y: 1.05, //position in y domain
+      xref: 'paper',
+      yref: 'paper',
+    }]
+  };
+
+  Plotly.newPlot('dts_waterfall', data, layout);
+
+  $( document ).ready(function() {
+    $('#save').click(function(e) {
+      configs=save_configs();
+      socket.emit("save_zrange",configs)
+    })
+  });
+
+
+  function save_configs(){
+    zrange=[parseFloat($("#zmin").val()),parseFloat($("#zmax").val())]
+    colormap=$("#colormap").val()
+    configs["zrange"]=zrange
+    configs["colormap"]=colormap
+
+    return configs
+  }
+  // console.log(session.dts_timestamps);
+
+
+  socket.on('saved', function(data) {
+    alert("Configurations saved!");
+  });
+
+</script>
+
+{% endblock %}

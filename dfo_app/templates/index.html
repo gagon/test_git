@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+  <div class="col-lg-12">
+
+    <form>
+      <div class="form-group row">
+        <label for="well_name" class="col-sm-2 col-form-label">Well name</label>
+        <div class="col-sm-2">
+          <input type="text" class="form-control" id="well_name" value="{{session.well_name}}">
+        </div>
+      </div>
+      <div class="form-group row">
+        <label for="raw_dts_folder" class="col-sm-2 col-form-label">Raw DTS (folder)</label>
+        <div class="col-sm-6">
+          <input type="text" class="form-control" id="raw_dts_folder" value="{{session.raw_dts_folder}}">
+        </div>
+      </div>
+      <div class="form-group row">
+        <label for="output_dts_folder" class="col-sm-2 col-form-label">Output DTS (folder)</label>
+        <div class="col-sm-6">
+          <input type="text" class="form-control" id="output_dts_folder" value="{{session.output_dts_folder}}">
+        </div>
+      </div>
+      <div class="form-group row">
+        <label for="downhole_data_fullpath" class="col-sm-2 col-form-label">Downhole data (full path)</label>
+        <div class="col-sm-6">
+          <input type="text" class="form-control" id="downhole_data_fullpath" value="{{session.downhole_data_fullpath}}">
+        </div>
+      </div>
+    </form>
+    <div class="form-group row">
+      <label for="well_completion_fullpath" class="col-sm-2 col-form-label">Well completion (full path)</label>
+      <div class="col-sm-6">
+        <input type="text" class="form-control" id="well_completion_fullpath" value="{{session.well_completion_fullpath}}">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="well_inclination_fullpath" class="col-sm-2 col-form-label">Well inclination (full path)</label>
+      <div class="col-sm-6">
+        <input type="text" class="form-control" id="well_inclination_fullpath" value="{{session.well_inclination_fullpath}}">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="well_logs_folder" class="col-sm-2 col-form-label">Well logs (folder)</label>
+      <div class="col-sm-6">
+        <input type="text" class="form-control" id="well_logs_folder" value="{{session.well_logs_folder}}">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="well_geothermal_fullpath" class="col-sm-2 col-form-label">Geothermal trace (full path)</label>
+      <div class="col-sm-6">
+        <input type="text" class="form-control" id="well_geothermal_fullpath" value="{{session.well_geothermal_fullpath}}">
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-info" id="save">Save</button>
+
+
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+  var session;
+  session={{ session|safe }};
+  // console.log(session);
+
+  $( document ).ready(function() {
+
+    $('#save').click(function(e) {
+      session=save_configs(session);
+      console.log(session);
+      socket.emit("save_session",session)
+    })
+
+  });
+
+  function save_configs(session){
+    session["well_name"]=$("#well_name").val()
+    session["output_dts_folder"]=$("#output_dts_folder").val()
+    session["downhole_data_fullpath"]=$("#downhole_data_fullpath").val()
+    session["well_completion_fullpath"]=$("#well_completion_fullpath").val()
+    session["well_inclination_fullpath"]=$("#well_inclination_fullpath").val()
+    session["well_geothermal_fullpath"]=$("#well_geothermal_fullpath").val()
+    session["well_logs_folder"]=$("#well_logs_folder").val()
+    return session
+  }
+
+
+  socket.on('saved', function(data) {
+    alert("Configurations saved!");
+  });
+
+</script>
+
+
+
+
+{% endblock %}
